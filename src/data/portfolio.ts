@@ -5,10 +5,19 @@ import type {
   SocialLink
 } from '../types/portfolio';
 
-// Automatically handles localhost and GitHub Pages asset paths
+// ==========================================
+// ASSET PATH HANDLER
+// GitHub Pages + Localhost
+// ==========================================
+
 const assetPath = (path: string): string => {
-  return `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`;
+  const base = import.meta.env.BASE_URL || '/';
+  return `${base}${path.replace(/^\/+/, '')}`;
 };
+
+// ==========================================
+// ARTIST PROFILE
+// ==========================================
 
 export const artistProfile: ArtistProfile = {
   name: 'Rahul M',
@@ -58,6 +67,7 @@ export const artistProfile: ArtistProfile = {
     { id: 'substance', name: 'Adobe Substance 3D Painter', category: '3d', proficiency: 75 },
     { id: 'photoshop', name: 'Adobe Photoshop', category: '3d', proficiency: 80 },
     { id: 'unity', name: 'Unity', category: '3d', proficiency: 75 },
+
     { id: 'python', name: 'Python', category: 'technical', proficiency: 85 },
     { id: 'sql', name: 'SQL / MySQL / Oracle SQL', category: 'technical', proficiency: 80 },
     { id: 'excel', name: 'Microsoft Excel (Advanced)', category: 'technical', proficiency: 85 },
@@ -124,7 +134,7 @@ export const artistProfile: ArtistProfile = {
       badge: 'Elite + Silver (Score: 81%)',
       date: 'Jan — Apr 2026',
       tag: 'IoT & Embedded',
-      pdfPath: assetPath('/certifications/Introduction to Internet of Things.pdf')
+      pdfPath: assetPath('certifications/Introduction to Internet of Things.pdf')
     },
     {
       id: 'cloud',
@@ -133,7 +143,7 @@ export const artistProfile: ArtistProfile = {
       badge: 'Elite (Score: 73%)',
       date: 'Jan — Apr 2026',
       tag: 'Cloud Architecture',
-      pdfPath: assetPath('/certifications/Cloud Computing.pdf')
+      pdfPath: assetPath('certifications/Cloud Computing.pdf')
     },
     {
       id: 'cybersecurity',
@@ -142,7 +152,7 @@ export const artistProfile: ArtistProfile = {
       badge: 'IAM & Enterprise Security',
       date: 'December 2024',
       tag: 'Information Security',
-      pdfPath: assetPath('/certifications/Cybersecurity Analyst Job Simulation.pdf')
+      pdfPath: assetPath('certifications/Cybersecurity Analyst Job Simulation.pdf')
     },
     {
       id: 'finch',
@@ -151,7 +161,7 @@ export const artistProfile: ArtistProfile = {
       badge: 'Java & Robotics Systems',
       date: 'April 2024',
       tag: 'Java Systems',
-      pdfPath: assetPath('/certifications/Programming the Finch Robot in Java Workshop.pdf')
+      pdfPath: assetPath('certifications/Programming the Finch Robot in Java Workshop.pdf')
     },
     {
       id: 'excel',
@@ -160,7 +170,7 @@ export const artistProfile: ArtistProfile = {
       badge: 'Data Preparation & Modeling',
       date: 'September 2025',
       tag: 'Data Analytics',
-      pdfPath: assetPath('/certifications/Preparing Data for Analysis with Microsoft Excel.pdf')
+      pdfPath: assetPath('certifications/Preparing Data for Analysis with Microsoft Excel.pdf')
     }
   ],
 
@@ -204,6 +214,7 @@ export const artistProfile: ArtistProfile = {
 
 // ==========================================
 // 3D ARTIST PROJECTS
+// All models are inside public/models/
 // ==========================================
 
 export const projects3D: Project3D[] = [
@@ -212,8 +223,8 @@ export const projects3D: Project3D[] = [
     title: 'Commercial Complex Building',
     description: 'Flagship large-scale architectural building with modular facade system, unitized curtain wall, and structural grid',
     longDescription: 'My flagship Autodesk Maya 3D project: a massive commercial architectural complex designed with precision engineering realism. Features a fully articulated curtain wall system, multi-tier floor plates, entrance canopy, podium structural assemblies, and optimized polygon flow for architectural visualization workflows.',
-    modelPath: assetPath('/models/building.glb'),
-    screenshotPath: assetPath('/images/maya-building.svg'),
+    modelPath: assetPath('models/building_optimized.glb'),
+    screenshotPath: assetPath('images/maya-building.svg'),
     software: ['Autodesk Maya'],
     tags: ['Architecture', 'Environment', 'Commercial', 'Best Work', 'Flagship Model', 'Curtain Wall'],
     year: '2024',
@@ -226,8 +237,8 @@ export const projects3D: Project3D[] = [
     title: 'Fire Pump System',
     description: 'Industrial fire suppression equipment with detailed mechanical assemblies and piping',
     longDescription: 'A detailed industrial fire pump system modeled for technical visualization. Includes pump housing, impeller assembly, valve mechanisms, piping connections, and mounting brackets. Built with manufacturing-accurate proportions and clean topology for CAD-style presentation renders.',
-    modelPath: assetPath('/models/firepump.glb'),
-    screenshotPath: assetPath('/images/maya-firepump.svg'),
+    modelPath: assetPath('models/firepump.glb'),
+    screenshotPath: assetPath('images/maya-firepump.svg'),
     software: ['Autodesk Maya'],
     tags: ['Industrial', 'Mechanical', 'Technical Viz', 'Product Design'],
     year: '2024',
@@ -240,8 +251,8 @@ export const projects3D: Project3D[] = [
     title: 'Ghostblaster',
     description: 'High-detail sci-fi weapon prop with intricate mechanical components',
     longDescription: 'A conceptual sci-fi weapon designed as a hero prop for game-ready assets. The model features complex hard-surface geometry with detailed mechanical assemblies, modular components, and optimized topology for real-time rendering. Created entirely in Autodesk Maya with PBR texturing workflow.',
-    modelPath: assetPath('/models/ghostblaster.glb'),
-    screenshotPath: assetPath('/images/maya-ghostblaster.svg'),
+    modelPath: assetPath('models/ghostblaster.glb'),
+    screenshotPath: assetPath('images/maya-ghostblaster.svg'),
     software: ['Autodesk Maya', 'Substance Painter'],
     tags: ['Hard Surface', 'Props', 'Game Ready', 'Sci-Fi', 'PBR'],
     year: '2024',
@@ -254,8 +265,8 @@ export const projects3D: Project3D[] = [
     title: 'Sport Motorcycle',
     description: 'Full-detail sport bike with animated components and realistic proportions',
     longDescription: 'A complete sport motorcycle model featuring detailed engine block, frame geometry, suspension system, braking components, and drivetrain. Modeled with subdivision-ready topology for high-quality close-up renders.',
-    modelPath: assetPath('/models/bike.glb'),
-    screenshotPath: assetPath('/images/maya-bike.svg'),
+    modelPath: assetPath('models/bike.glb'),
+    screenshotPath: assetPath('images/maya-bike.svg'),
     software: ['Autodesk Maya'],
     tags: ['Vehicle', 'Hard Surface', 'Product Viz'],
     year: '2024',
@@ -268,8 +279,8 @@ export const projects3D: Project3D[] = [
     title: 'Speed Boat',
     description: 'High-performance marine vessel with hydrodynamic hull design',
     longDescription: 'A sleek speed boat modeled with attention to hydrodynamic form language. Features detailed deck layout, seating, console instrumentation, propulsion system, and hull geometry. Suitable for marine visualization and advertising contexts.',
-    modelPath: assetPath('/models/boat.glb'),
-    screenshotPath: assetPath('/images/maya-boat.svg'),
+    modelPath: assetPath('models/boat.glb'),
+    screenshotPath: assetPath('images/maya-boat.svg'),
     software: ['Autodesk Maya'],
     tags: ['Vehicle', 'Marine', 'Product Design', 'Transportation'],
     year: '2024',
@@ -282,8 +293,8 @@ export const projects3D: Project3D[] = [
     title: 'Vintage Radio',
     description: 'Retro consumer electronics with period-accurate detailing',
     longDescription: 'A meticulously crafted vintage radio prop featuring authentic textures, woven speaker grille, analog dial mechanism, and period-appropriate control layout. Created as a hero asset for period-piece visualization.',
-    modelPath: assetPath('/models/radio.glb'),
-    screenshotPath: assetPath('/images/maya-radio.svg'),
+    modelPath: assetPath('models/radio.glb'),
+    screenshotPath: assetPath('images/maya-radio.svg'),
     software: ['Autodesk Maya', 'Substance Painter'],
     tags: ['Props', 'Vintage', 'Product Design', 'Materials'],
     year: '2024',
@@ -296,10 +307,24 @@ export const projects3D: Project3D[] = [
     title: 'Hardcover Book',
     description: 'Editorial prop with detailed binding and page geometry',
     longDescription: 'A premium hardcover book model with realistic binding details, page block geometry, and cover treatment. Created for editorial visualization and product shot contexts.',
-    modelPath: assetPath('/models/book.glb'),
-    screenshotPath: assetPath('/images/maya-book.svg'),
+    modelPath: assetPath('models/book.glb'),
+    screenshotPath: assetPath('images/maya-book.svg'),
     software: ['Autodesk Maya'],
     tags: ['Props', 'Editorial', 'Product', 'Stationery'],
+    year: '2024',
+    category: 'prop',
+    featured: false,
+    wireframeAvailable: true
+  },
+  {
+    id: 'axe',
+    title: 'Axe Prop',
+    description: '3D axe model with detailed geometry and surface design',
+    longDescription: 'A hard-surface prop modeled in Autodesk Maya.',
+    modelPath: assetPath('models/axe.glb'),
+    screenshotPath: assetPath('images/maya-axe.svg'),
+    software: ['Autodesk Maya'],
+    tags: ['Props', 'Hard Surface', '3D Modeling'],
     year: '2024',
     category: 'prop',
     featured: false,
@@ -307,7 +332,15 @@ export const projects3D: Project3D[] = [
   }
 ];
 
+// ==========================================
+// GRAPHIC DESIGN PROJECTS
+// ==========================================
+
 export const graphicDesignProjects: GraphicDesignProject[] = [];
+
+// ==========================================
+// SOCIAL LINKS
+// ==========================================
 
 export const socialLinks: SocialLink[] = [
   {
@@ -336,6 +369,10 @@ export const socialLinks: SocialLink[] = [
   }
 ];
 
+// ==========================================
+// HERO SPECIALIZATIONS
+// ==========================================
+
 export const heroSpecializations = [
   {
     id: 'data',
@@ -362,6 +399,10 @@ export const heroSpecializations = [
     icon: 'layout'
   }
 ];
+
+// ==========================================
+// CATEGORY LABELS
+// ==========================================
 
 export const categoryLabels: Record<typeof projects3D[0]['category'], string> = {
   product: 'Product',

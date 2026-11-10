@@ -1,169 +1,433 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  Component,
+} from 'react';
+
+import type { ReactNode } from 'react';
+
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useGLTF, Environment } from '@react-three/drei';
 import * as THREE from 'three';
+
 import { AlertCircle, RefreshCw } from 'lucide-react';
 
-/* ─────────────────────────────────────────────
-   Inner scene rendered inside the mini canvas
- ───────────────────────────────────────────── */
-function MiniScene({ modelPath, onError }: { modelPath: string; onError?: (error: Error) => void }) {
-  let gltf;
-  try {
-    gltf = useGLTF(modelPath);
-  } catch (error) {
-    onError?.(error as Error);
-    throw error; // Let Suspense/Error Boundary handle it
+
+/* ==========================================
+   ERROR BOUNDARY
+========================================== */
+
+interface ErrorBoundaryProps {
+  children: ReactNode;
+  onError: (error: Error) => void;
+  resetKey: number;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+}
+
+class ModelErrorBoundary extends Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
+  state: ErrorBoundaryState = {
+    hasError: false,
+  };
+
+  static getDerivedStateFromError(): ErrorBoundaryState {
+    return { hasError: true };
   }
-  const clonedScene = useMemo(() => gltf?.scene?.clone(), [gltf?.scene]);
+
+  componentDidCatch(error: Error) {
+    this.props.onError(error);
+  }
+
+  componentDidUpdate(prevProps: ErrorBoundaryProps) {
+    if (prevProps.resetKey !== this.props.resetKey && this.state.hasError) {
+      this.setState({ hasError: false });
+    }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return null;
+    }
+
+    return this.props.children;
+  }
+}
+
+
+/* ==========================================
+   MINI MODEL SCENE
+========================================== */
+
+interface MiniSceneProps {
+  modelPath: string;
+}
+
+function MiniScene({ modelPath }: MiniSceneProps) {
+
+  // IMPORTANT:
+  // Do not wrap useGLTF in try/catch.
+  // Suspense handles model loading automatically.
+
+  const gltf = useGLTF(modelPath);
+
+  const clonedScene = useMemo(() => {
+    return gltf.scene.clone(true);
+  }, [gltf.scene]);
+
   const { camera } = useThree();
+
   const groupRef = useRef<THREE.Group>(null);
 
-  // Handle missing scene
-  if (!clonedScene) {
-    return (
-      <group>
-        <ambientLight intensity={0.9} />
-        <directionalLight position={[8, 12, 8]} intensity={1.4} />
-        <directionalLight position={[-8, 8, -8]} intensity={0.6} />
-        <directionalLight position={[0, -4, 4]} intensity={0.25} />
-        <Environment preset="studio" background={false} />
-      </group>
-    );
-  }
+
+  /* Model positioning and camera */
 
   useEffect(() => {
-    if (!clonedScene) return;
 
     const box = new THREE.Box3().setFromObject(clonedScene);
+
     const center = box.getCenter(new THREE.Vector3());
+
     const size = box.getSize(new THREE.Vector3());
 
-    // Centre the model at the origin
-    clonedScene.position.x = -center.x;
-    clonedScene.position.y = -box.min.y;
-    clonedScene.position.z = -center.z;
-
-    // Frame it in camera view
     const maxDim = Math.max(size.x, size.y, size.z);
-    const fov = (camera as THREE.PerspectiveCamera).fov * (Math.PI / 180);
-    const dist = (maxDim / (2 * Math.tan(fov / 2))) * 1.55;
 
-    camera.position.set(dist * 0.75, dist * 0.55, dist);
-    camera.lookAt(0, size.y * 0.35, 0);
+    if (!Number.isFinite(maxDim) || maxDim <= 0) {
+      console.error('Invalid 3D model dimensions:', modelPath);
+      return;
+    }
 
-    // Ensure materials render properly
-    const isHome = modelPath.toLowerCase().includes('home');
-    clonedScene.traverse((child: THREE.Object3D) => {
+    // Centre and ground the model.
+
+    clonedScene.position.set(
+      -center.x,
+      -box.min.y,
+      -center.z
+    );
+
+    // Calculate camera distance.
+
+    const perspectiveCamera = camera as THREE.PerspectiveCamera;
+
+    const fov = perspectiveCamera.fov * (Math.PI / 180);
+
+    const distance =
+      (maxDim / (2 * Math.tan(fov / 2))) * 1.8;
+
+    perspectiveCamera.position.set(
+      distance * 0.8,
+      distance * 0.55,
+      distance
+    );
+
+    perspectiveCamera.lookAt(
+      0,
+      size.y * 0.35,
+      0
+    );
+
+    perspectiveCamera.near = Math.max(maxDim / 1000, 0.001);
+
+    perspectiveCamera.far = Math.max(maxDim * 100, 1000);
+
+    perspectiveCamera.updateProjectionMatrix();
+
+
+    // Preserve original model materials and textures.
+
+    clonedScene.traverse((child) => {
+
       if (child instanceof THREE.Mesh) {
-        child.castShadow = false;
-        child.receiveShadow = false;
-        if (isHome) {
-          if (!child.material || child.material.color?.getHex() === 0xffffff) {
-            child.material = new THREE.MeshStandardMaterial({
-              color: 0xd4d8e0,
-              roughness: 0.65,
-              metalness: 0.08,
-            });
-          }
+
+        child.castShadow = true;
+
+        child.receiveShadow = true;
+
+        if (child.material) {
+
+          const materials = Array.isArray(child.material)
+            ? child.material
+            : [child.material];
+
+          materials.forEach((material) => {
+
+            material.side = THREE.DoubleSide;
+
+            material.needsUpdate = true;
+
+          });
+
         }
+
       }
+
     });
+
   }, [clonedScene, camera, modelPath]);
 
-  // Slow continuous turntable
+
+  /* Continuous rotation */
+
   useFrame((_, delta) => {
+
     if (groupRef.current) {
-      groupRef.current.rotation.y += delta * 0.35;
+
+      groupRef.current.rotation.y += delta * 0.25;
+
     }
+
   });
 
+
   return (
+
     <>
-      <ambientLight intensity={0.9} />
-      <directionalLight position={[8, 12, 8]} intensity={1.4} />
-      <directionalLight position={[-8, 8, -8]} intensity={0.6} />
-      <directionalLight position={[0, -4, 4]} intensity={0.25} />
-      <Environment preset="studio" background={false} />
+
+      <ambientLight intensity={1.2} />
+
+      <directionalLight
+        position={[8, 12, 8]}
+        intensity={2}
+      />
+
+      <directionalLight
+        position={[-8, 8, -8]}
+        intensity={1}
+      />
+
+      <directionalLight
+        position={[0, -4, 4]}
+        intensity={0.5}
+      />
+
+      <Environment
+        preset="studio"
+        background={false}
+      />
 
       <group ref={groupRef}>
+
         <primitive object={clonedScene} />
+
       </group>
+
     </>
+
   );
+
 }
 
-/* ─────────────────────────────────────────────
-   Skeleton placeholder shown while loading
- ───────────────────────────────────────────── */
+
+/* ==========================================
+   LOADING PLACEHOLDER
+========================================== */
+
 function LoadingSkeleton() {
+
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-bg pointer-events-none gap-2">
-      <div className="w-8 h-8 border-2 border-accent/50 border-t-accent rounded-full animate-spin" />
-      <span className="text-[10px] font-mono text-text-subtle tracking-wider">Loading Model…</span>
+
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black gap-3">
+
+      <div className="w-8 h-8 border-2 border-purple-500/40 border-t-purple-500 rounded-full animate-spin" />
+
+      <span className="text-xs text-gray-400">
+        Loading 3D Model...
+      </span>
+
     </div>
+
   );
+
 }
 
-/* ─────────────────────────────────────────────
-   Public component – drop into any card
- ───────────────────────────────────────────── */
+
+/* ==========================================
+   MAIN COMPONENT
+========================================== */
+
 interface MiniModelPreviewProps {
+
   modelPath: string;
+
   className?: string;
+
 }
 
-export function MiniModelPreview({ modelPath, className = '' }: MiniModelPreviewProps) {
+
+export function MiniModelPreview({
+
+  modelPath,
+
+  className = '',
+
+}: MiniModelPreviewProps) {
+
   const [modelError, setModelError] = useState<string | null>(null);
 
+  const [retryKey, setRetryKey] = useState(0);
+
+
+  const handleRetry = () => {
+
+    setModelError(null);
+
+    // Clear cached GLTF only when retrying.
+
+    useGLTF.clear(modelPath);
+
+    setRetryKey((previous) => previous + 1);
+
+  };
+
+
   return (
-    <div className={`relative w-full h-full bg-black ${className}`}>
-      {modelError && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-bg/95 backdrop-blur-sm z-20 pointer-events-none p-4 text-center">
-          <div className="w-10 h-10 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-3">
-            <AlertCircle className="w-5 h-5 text-red-400" />
-          </div>
-          <span className="text-xs font-medium text-red-400 mb-1">Failed to Load</span>
-          <span className="text-[10px] text-text-subtle font-mono max-w-xs truncate block mb-2">{modelPath}</span>
-          <button 
-            onClick={() => setModelError(null)}
-            className="text-[10px] font-mono text-accent hover:underline flex items-center gap-1"
+
+    <div className={`relative w-full h-full bg-black overflow-hidden ${className}`}>
+
+      {/* Actual 3D Canvas */}
+
+      {!modelError && (
+
+        <Canvas
+
+          key={retryKey}
+
+          camera={{
+            position: [4, 3, 5],
+            fov: 45,
+            near: 0.01,
+            far: 2000,
+          }}
+
+          gl={{
+
+            antialias: true,
+
+            alpha: false,
+
+            powerPreference: 'default',
+
+            stencil: false,
+
+            depth: true,
+
+          }}
+
+          dpr={[1, 1.5]}
+
+          style={{
+            width: '100%',
+            height: '100%',
+            display: 'block',
+          }}
+
+          onCreated={({ gl }) => {
+
+            gl.toneMapping = THREE.ACESFilmicToneMapping;
+
+            gl.toneMappingExposure = 1.15;
+
+            gl.outputColorSpace = THREE.SRGBColorSpace;
+
+            gl.setClearColor(0x0a0a0b, 1);
+
+          }}
+
+        >
+
+          <ModelErrorBoundary
+
+            resetKey={retryKey}
+
+            onError={(error) => {
+
+              console.error(
+                '3D Model loading error:',
+                modelPath,
+                error
+              );
+
+              setModelError(error.message || 'Failed to load model');
+
+            }}
+
           >
-            <RefreshCw className="w-3 h-3" />
-            Retry
-          </button>
-        </div>
+
+            <Suspense fallback={null}>
+
+              <MiniScene
+                modelPath={modelPath}
+              />
+
+            </Suspense>
+
+          </ModelErrorBoundary>
+
+        </Canvas>
+
       )}
 
-      <Suspense fallback={<LoadingSkeleton />}>
-        <Canvas
-          camera={{ fov: 45, near: 0.01, far: 2000 }}
-          gl={{
-            antialias: true,
-            alpha: false,
-            powerPreference: 'default',
-            stencil: false,
-            depth: true,
-          }}
-          style={{ display: 'block', width: '100%', height: '100%' }}
-          onCreated={({ gl }) => {
-            gl.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-            gl.toneMapping = THREE.ACESFilmicToneMapping;
-            gl.toneMappingExposure = 1.05;
-            gl.outputColorSpace = THREE.SRGBColorSpace;
-            gl.setClearColor(0x0a0a0b, 1);
-          }}
-        >
-          <Suspense fallback={null}>
-            <MiniScene 
-              modelPath={modelPath} 
-              onError={(error) => setModelError(error.message || 'Failed to load model')} 
-            />
-          </Suspense>
-        </Canvas>
-      </Suspense>
+
+      {/* Loading indicator */}
+
+      {!modelError && (
+
+        <div className="absolute bottom-3 left-3 pointer-events-none">
+
+          <span className="text-[10px] text-gray-500 font-mono">
+            3D PREVIEW
+          </span>
+
+        </div>
+
+      )}
+
+
+      {/* Error screen */}
+
+      {modelError && (
+
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black z-20 p-4 text-center">
+
+          <AlertCircle className="w-8 h-8 text-red-400 mb-3" />
+
+          <span className="text-sm text-red-400 font-medium">
+            Failed to Load
+          </span>
+
+          <span className="text-[10px] text-gray-500 mt-2 break-all">
+            {modelError}
+          </span>
+
+          <button
+
+            onClick={handleRetry}
+
+            className="mt-4 flex items-center gap-2 text-xs text-purple-400 hover:text-purple-300"
+
+          >
+
+            <RefreshCw className="w-3 h-3" />
+
+            Retry
+
+          </button>
+
+        </div>
+
+      )}
+
     </div>
+
   );
+
 }
